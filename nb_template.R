@@ -184,15 +184,16 @@ lik    <- compute_likelihoods(tokens[train_idx], labels[train_idx], vocab, alpha
 
 test_pred <- predict_nb(tokens[test_idx], priors, lik, vocab)
 
-acc <- NULL   # TODO: accuracy on the test set (a single number)
-cm  <- NULL   # TODO: 2x2 table; rows = actual, columns = predicted, e.g.
+acc <- mean(test_pred == labels[test_idx])   # TODO: accuracy on the test set (a single number)
+cm  <- table(Actual = factor(labels[test_idx], levels = c("ham","spam")), Predicted = factor(test_pred , levels = c("ham","spam")))   # TODO: 2x2 table; rows = actual, columns = predicted, e.g.
               #   table(Actual    = factor(labels[test_idx], levels = c("ham", "spam")),
               #         Predicted = factor(test_pred,        levels = c("ham", "spam")))
 print(acc); print(cm)
 
 example_msgs <- c("Win free tickets now!!!", "Are you coming to the meeting?",
                   "URGENT! You won $1000", "See you tomorrow at lunch")
-example_preds <- NULL  # TODO: character vector of 4 predictions (preprocess, then predict_nb)
+example_tokens <- lapply(example_msgs,preprocess_text)
+example_preds <- predict_nb(example_tokens,priors,lik,vocab)  # TODO: character vector of 4 predictions (preprocess, then predict_nb)
 print(data.frame(message = example_msgs, predicted = example_preds))
 
 # RESULTS (TODO): in 2-3 comment lines, report the accuracy, say what the
@@ -208,8 +209,10 @@ print(data.frame(message = example_msgs, predicted = example_preds))
 #   log P(w | spam) - log P(w | ham)   computed from `lik`.
 # top_spam = the 10 largest values; top_ham = the 10 smallest (most negative).
 # Both must be named numeric vectors (names = words).
-top_spam <- NULL  # TODO
-top_ham  <- NULL  # TODO
+log_odds <- log(lik[,"spam"]) - log(lik[,"ham"])
+sorted_odds <- sort(log_odds, decreasing = TRUE)
+top_spam <- head(sorted_odds,10)  # TODO
+top_ham  <- tail(sorted_odds,10)  # TODO
 print(top_spam); print(top_ham)
 
 # DISCUSSION (TODO, 4-6 sentences, as comments):
