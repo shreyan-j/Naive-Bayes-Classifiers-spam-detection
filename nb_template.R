@@ -1,6 +1,6 @@
 # =====================================================================
 # CS230/561 Project: Binary Naive Bayes (SMS spam)
-# Name: <your name>          Roll No.: <your roll number>
+# Name: J Sai Shreyan          Roll No.: 2503122
 # Save this file as <rollno>_nb.R and submit it (single .R file).
 # =====================================================================
 #
@@ -52,16 +52,10 @@
 # Input: one SMS string. Output: character vector of tokens (rule above).
 preprocess_text <- function(text) {
   # TODO
-  
-  chars <- strsplit(text,"")[[1]];
-  for( i in seq_along(chars)){
-    if ( utf8ToInt(chars[i]) > 127) chars[i] <- " "
-    else if (grepl("[[:punct:]]", chars[i])) chars[i]<- ""
-    else chars[i]<- tolower(chars[i])
-  }
-  text <- paste(chars,"")[[1]];
-  # above text is processed text with all lowercase, no punctuation or non-ASCII characters
-  temp <- strsplit(text,"\\s+")[[1]]
+  text <- iconv(text,from = "UTF-8",to = "ASCII",sub = " ")
+  text <- tolower(text)
+  text <- gsub("[[:punct:]]","", text)
+  temp <- unlist(strsplit(text,"\\s+"))
   temp <- temp[temp != ""]
   return(temp)
 }
@@ -82,7 +76,8 @@ train_idx <- sample(seq_along(labels), size = floor(0.8 * length(labels)))  # DO
 test_idx  <- setdiff(seq_along(labels), train_idx)
 
 # EXPLANATION (TODO, 1-2 sentences): describe your preprocessing choices.
-# We split the string into array of chars, using a for loop on array, deleting the puntuation, replacing non-ASCII characters with spaces, and converting to lowercase.
+# Built in functions of R are used to preprocess the input data.
+# iconv to replace Non ASCII characters with a space, tolower() to convert to lowercase, gsub() to replace punctuation with black, unlist and strsplit to split into tokens.
 
 
 # =====================================================================
@@ -101,7 +96,7 @@ compute_priors <- function(train_labels) {
   # TODO
   counts <- table(train_labels)
   priors <- as.numeric(counts)/length(train_labels)
-  name(priors) <- names(counts)
+  names(priors) <- names(counts)
   return (priors)
 }
 
@@ -110,27 +105,19 @@ compute_priors <- function(train_labels) {
 # Count a word at most once per document (presence, not frequency).
 compute_likelihoods <- function(train_tokens, train_labels, vocab, alpha = 1) {
   # TODO
-  classes <- c("spam","ham")
+  classes <- names(table(train_labels))
   likelihoods <- matrix(0,nrow = length(vocab),ncol = 2,dimnames = list(vocab,classes))
   
-  spam_tokens <- train_tokens[train_labels == "spam"]
-  ham_tokens <- train_tokens[train_labels == "ham"]
-  no_spam_tokens <- length(spam_tokens)
-  no_ham_tokens <- length(ham_tokens)
-  
-  unique_spam_tokens <- unlist(lapply(spam_tokens,unique))
-  unique_ham_tokens <- unlist(lapply(ham_tokens,unique))
-  
-  table_unique_spam_tokens <- table(unique_spam_tokens)
-  table_unique_ham_tokens <- table(unique_ham_tokens)
-  
-  freq_spam <- as.numeric((table_unique_spam_tokens[vocab]))
-  freq_ham <- as.numeric((table_unique_ham_tokens[vocab]))
-  
-  freq_spam[is.na(freq_spam)] <-0
-  freq_ham[is.na(freq_ham)] <-0
-  likelihoods[,"spam"] <- (freq_spam + alpha)/ (no_spam_tokens +2*alpha)
-  likelihoods[,"ham"] <- (freq_ham + alpha)/ (no_ham_tokens +2*alpha)
+  for (cls in classes) {
+    class_docs <- train_tokens[train_labels == cls]
+    n_docs <- length(class_docs)
+    
+    unique_per_doc <- unlist(lapply(class_docs, unique))
+    counts <- table(unique_per_doc)[vocab]
+    counts[is.na(counts)] <- 0
+    
+    likelihoods[, cls] <- (as.numeric(counts) + alpha) / (n_docs + 2 * alpha)
+  }
   
   return(likelihoods)
 }
@@ -140,23 +127,15 @@ compute_likelihoods <- function(train_tokens, train_labels, vocab, alpha = 1) {
 # Words not in the vocabulary are ignored.
 score_message <- function(msg_tokens, priors, lik, vocab) {
   # TODO
-  present_words <- intersect(unique(msg_tokens),vocab)
-  absent_words <- setdiff(vocab,present_words)
+  present_words <- intersect(unique(msg_tokens), vocab)
+  absent_words  <- setdiff(vocab, present_words)
   
-  scores <- numeric((length(priors)))
-  names(scores) <- c("spam","ham")
+  scores <- numeric(length(priors))
+  names(scores) <- names(priors)
   
-  scores["spam"] <- log(priors["spam"])
-  for(w in present_words){
-    scores["spam"] <-scores["spam"] + long(lik[w,"spam"]);
+  for (cls in names(scores)) {
+    scores[cls] <- log(priors[cls]) + sum(log(lik[present_words, cls])) + sum(log(1 - lik[absent_words, cls]))
   }
-  for(w in absent_words) scores["spam"]<-scores["spam"] + log(1-lik[w,"spam"]);
-  
-  scores["ham"] <- log(priors["ham"])
-  for(w in present_words){
-    scores["ham"] <-scores["ham"] + log(lik[w,"ham"]);
-  }
-  for(w in absent_words) scores["ham"]<-scores["ham"] + log(1-lik[w,"ham"]);
   
   return(scores)
 }
@@ -171,7 +150,7 @@ predict_nb <- function(token_list, priors, lik, vocab) {
     predictions[i] <- names(scores)[which.max(scores)]
   }
   
-  retur
+  return(predictions)
 }
 
 
@@ -199,7 +178,7 @@ print(data.frame(message = example_msgs, predicted = example_preds))
 # RESULTS (TODO): in 2-3 comment lines, report the accuracy, say what the
 # confusion matrix shows (false positives vs false negatives), and whether the
 # four example messages were classified as expected.
-#
+# 
 
 
 # =====================================================================
@@ -212,7 +191,7 @@ print(data.frame(message = example_msgs, predicted = example_preds))
 log_odds <- log(lik[,"spam"]) - log(lik[,"ham"])
 sorted_odds <- sort(log_odds, decreasing = TRUE)
 top_spam <- head(sorted_odds,10)  # TODO
-top_ham  <- tail(sorted_odds,10)  # TODO
+top_ham  <- head(sort(log_odds, decreasing = FALSE), 10)  # TODO
 print(top_spam); print(top_ham)
 
 # DISCUSSION (TODO, 4-6 sentences, as comments):
@@ -220,4 +199,8 @@ print(top_spam); print(top_ham)
 # - Name one limitation of the Naive Bayes independence assumption, with an
 #   example from your results.
 # - Name one thing you would change to improve the classifier.
-#
+# 
+# words like claim, prize, won, guaranteed and numbers like 1000, 500 indicate spam. while lords like  lor, later, he, da, ill, she indicate ham.
+# Naive Bayes assumption is based on independence of words/tokens. It basically assumes words are independent in a sentence, but that is totally false in basic English. very often, words throughout the sentence are interconnected.
+# for example, "free" has a completely different meaning in " are you free tonight" and "you got $1000 for free". The same word acts as different meaning in different cases.
+# I would adjust the smoothing value alpha to suitable value so that accuracy is maximum, we can achieve this by trial and error different values of alpha and testing on the same data set.
