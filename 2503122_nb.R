@@ -76,8 +76,8 @@ train_idx <- sample(seq_along(labels), size = floor(0.8 * length(labels)))  # DO
 test_idx  <- setdiff(seq_along(labels), train_idx)
 
 # EXPLANATION (TODO, 1-2 sentences): describe your preprocessing choices.
-# Built in functions of R are used to preprocess the input data.
-# iconv to replace Non ASCII characters with a space, tolower() to convert to lowercase, gsub() to replace punctuation with black, unlist and strsplit to split into tokens.
+# Built-in functions of R are used to preprocess the input data.
+# iconv to replace non-ASCII characters with a space, tolower() to convert to lowercase, gsub() to replace punctuation with a blank, unlist and strsplit to split into tokens.
 
 
 # =====================================================================
@@ -165,8 +165,8 @@ test_pred <- predict_nb(tokens[test_idx], priors, lik, vocab)
 
 acc <- mean(test_pred == labels[test_idx])   # TODO: accuracy on the test set (a single number)
 cm  <- table(Actual = factor(labels[test_idx], levels = c("ham","spam")), Predicted = factor(test_pred , levels = c("ham","spam")))   # TODO: 2x2 table; rows = actual, columns = predicted, e.g.
-              #   table(Actual    = factor(labels[test_idx], levels = c("ham", "spam")),
-              #         Predicted = factor(test_pred,        levels = c("ham", "spam")))
+#   table(Actual    = factor(labels[test_idx], levels = c("ham", "spam")),
+#         Predicted = factor(test_pred,        levels = c("ham", "spam")))
 print(acc); print(cm)
 
 example_msgs <- c("Win free tickets now!!!", "Are you coming to the meeting?",
@@ -178,8 +178,13 @@ print(data.frame(message = example_msgs, predicted = example_preds))
 # RESULTS (TODO): in 2-3 comment lines, report the accuracy, say what the
 # confusion matrix shows (false positives vs false negatives), and whether the
 # four example messages were classified as expected.
-# 
+# accuracy reported is 97.04%
 
+#CONFUSION MATRIX :
+#                Predicted-ham    Predicted-spam
+# Actual-ham     960              0
+# Actual-spam    33               122
+# Two out of four messages are classified as expected. Messages 1 and 3 were predicted as ham, but they were actually spam. This points out the limitations of the Naive Bayes assumption.
 
 # =====================================================================
 # 4. Analysis and summary
@@ -200,7 +205,7 @@ print(top_spam); print(top_ham)
 #   example from your results.
 # - Name one thing you would change to improve the classifier.
 # 
-# words like claim, prize, won, guaranteed and numbers like 1000, 500 indicate spam. while lords like  lor, later, he, da, ill, she indicate ham.
-# Naive Bayes assumption is based on independence of words/tokens. It basically assumes words are independent in a sentence, but that is totally false in basic English. very often, words throughout the sentence are interconnected.
-# for example, "free" has a completely different meaning in " are you free tonight" and "you got $1000 for free". The same word acts as different meaning in different cases.
-# I would adjust the smoothing value alpha to suitable value so that accuracy is maximum, we can achieve this by trial and error different values of alpha and testing on the same data set.
+# Words like claim, prize, won, guaranteed and numbers like 1000, 500 indicate spam. While words like lor, later, he, da, ill, she indicate ham.
+# Naive Bayes assumption is based on independence of words/tokens. It basically assumes words are independent in a sentence, but that is totally false in basic English. Very often, words throughout the sentence are interconnected.
+# For example, "free" has a completely different meaning in "Are you free tonight?" and "You got $1000 for free". The same word acts with a different meaning in different cases.
+# I would adjust the smoothing value alpha to a suitable value so that accuracy is maximum; we can achieve this by trial and error with different values of alpha and testing on the same data set.
